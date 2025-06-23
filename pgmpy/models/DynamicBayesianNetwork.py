@@ -140,6 +140,7 @@ class DynamicBayesianNetwork(DAG):
     add_edges
     add_edges_from
     add_cpds
+    log_likelihood
     initialize_initial_state
     inter_slice
     intra_slice
@@ -532,6 +533,9 @@ class DynamicBayesianNetwork(DAG):
                 raise ValueError("CPD defined on variable not in the model", cpd)
 
         self.cpds.extend(cpds)
+
+    def log_likelihood(self, data):
+        pass
 
     def get_cpds(self, node=None, time_slice=None):
         """
