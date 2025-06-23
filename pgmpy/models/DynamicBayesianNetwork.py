@@ -535,6 +535,45 @@ class DynamicBayesianNetwork(DAG):
         self.cpds.extend(cpds)
 
     def log_likelihood(self, data):
+        """
+        Computes the log-likelihood of a given dataset.
+
+        The log-likelihood measure can be used to check how well the specified
+        model describes the data. A higher score means a better fit.
+
+        Parameters
+        ----------
+        data: pd.DataFrame instance
+            The dataset against which to score the model.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> from pgmpy.models import DynamicBayesianNetwork as DBN
+        >>> model = DBN(
+        ...     [
+        ...         (("A", 0), ("B", 0)),
+        ...         (("A", 0), ("C", 0)),
+        ...         (("B", 0), ("D", 0)),
+        ...         (("C", 0), ("D", 0)),
+        ...         (("A", 0), ("A", 1)),
+        ...         (("B", 0), ("B", 1)),
+        ...         (("C", 0), ("C", 1)),
+        ...         (("D", 0), ("D", 1)),
+        ...     ]
+        ... )
+        >>> data = np.random.randint(low=0, high=2, size=(1000, 20))
+        >>> colnames = []
+        >>> for t in range(5):
+        ...     colnames.extend([("A", t), ("B", t), ("C", t), ("D", t)])
+        ...
+        >>> df = pd.DataFrame(data, columns=colnames)
+        >>> model.fit(df)
+        >>> data = model.simulate(int(1e4))
+        >>> model.log_likelihood(data)
+        -103818.57516969478
+        """
         pass
 
     def get_cpds(self, node=None, time_slice=None):
