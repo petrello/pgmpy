@@ -1270,7 +1270,7 @@ class DynamicBayesianNetwork(DAG):
         from pgmpy.sampling import BayesianModelSampling
 
         if show_progress and config.SHOW_PROGRESS:
-            pbar = tqdm(total=n_time_slices * len(self._nodes()))
+            _ = tqdm(total=n_time_slices * len(self._nodes()))
 
         # Step 1: Create some data structures for easily accessing values
         do = {} if do is None else do
