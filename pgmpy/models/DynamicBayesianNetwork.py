@@ -1267,7 +1267,6 @@ class DynamicBayesianNetwork(DAG):
         0       0       0       0       1       2       0       1       2       1       1       0       1
         1       0       1       1       1       2       0       1       2       1       1       0       0
         """
-        from pgmpy.sampling import BayesianModelSampling
 
         if show_progress and config.SHOW_PROGRESS:
             _ = tqdm(total=n_time_slices * len(self._nodes()))
