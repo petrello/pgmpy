@@ -645,8 +645,8 @@ class DynamicBayesianNetwork(DAG):
 
                 # Compute log-probability for each node in this time slice
                 for node in nodes_t:
-                    node_log_prob = self._compute_node_log_probability(
-                        node, data.iloc[i], node_to_cpd[node], epsilon
+                    node_log_prob = self._log_likelihood_node(
+                        node, data.iloc[i], node_to_cpd[node]
                     )
                     sample_log_likelihood += node_log_prob
 
@@ -654,6 +654,75 @@ class DynamicBayesianNetwork(DAG):
 
         return total_log_likelihood
 
+    def _log_likelihood_node(self, node, sample_data, cpd):
+        """
+        Compute the log-probability of a specific node given the sample data.
+
+        Parameters
+        ----------
+        node : tuple
+            Node identifier in format (variable_name, time_slice)
+        sample_data : pd.Series
+            Single data sample containing values for all variables
+        cpd : pgmpy.factors.discrete.TabularCPD
+            Conditional Probability Distribution for the node
+
+        Returns
+        -------
+        float
+            Log-probability of the node given the evidence
+        """
+
+        # Get the observed value for this node
+        observed_value = sample_data[node]
+
+        # Convert observed value to state index according to CPD
+        try:
+            observed_state_idx = cpd.state_names[node].index(observed_value)
+        except (ValueError, IndexError):
+            raise ValueError(
+                f"Observed value '{observed_value}' for node {node} "
+                f"not found in CPD state names: {cpd.state_names[node]}"
+            )
+
+        # Get parents (evidence variables) for this node
+        parents = self.get_parents(node)
+
+        if not parents:
+            # No parents - use marginal probability
+            prob = cpd.values[observed_state_idx]
+        else:
+            # Has parents - use conditional probability
+            evidence_indices = []
+
+            # Get evidence values for all parents
+            for parent in parents:
+                if parent in sample_data.index:
+                    parent_value = sample_data[parent]
+
+                    # Convert parent value to state index
+                    try:
+                        parent_state_idx = cpd.state_names[parent].index(parent_value)
+                    except (ValueError, IndexError):
+                        raise ValueError(
+                            f"Parent value '{parent_value}' for node {parent} "
+                            f"not found in CPD state names: {cpd.state_names[parent]}"
+                        )
+
+                    evidence_indices.append(parent_state_idx)
+                else:
+                    raise ValueError(
+                        f"Parent node {parent} not found in sample data. "
+                        "Ensure all parent nodes are included in the dataset."
+                    )
+
+            prob = cpd.values[observed_state_idx, tuple(evidence_indices)]
+
+        # Ensure probability is not zero for numerical stability
+        # (with a small epsilon to avoid log(0))
+        prob = max(prob, 1e-10)
+
+        return np.log(prob)
 
     def get_cpds(self, node=None, time_slice=None):
         """
