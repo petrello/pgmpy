@@ -607,10 +607,10 @@ class DynamicBayesianNetwork(DAG):
         if min(data.columns, key=lambda t: t[1])[1] != 0:
             raise ValueError("Data column names must start from time slice 0.")
 
-        if set(self._nodes()) != set(data.columns):
+        if set(self.nodes()) != set(data.columns):
             raise ValueError(
                 f"Missing columns in data. Can't find values for the following variables: "
-                f" {set(self._nodes()) - set(data.columns)}"
+                f" {set(self.nodes()) - set(data.columns)}"
             )
 
         # Check for missing values
@@ -628,8 +628,7 @@ class DynamicBayesianNetwork(DAG):
         # Initialize computation variables
         total_log_likelihood = 0.0
         n_samples = len(data)
-        epsilon = 1e-10  # Small constant to prevent log(0)
-        nodes = list(self._nodes())
+        nodes = list(self.nodes())
         time_slices = self._timeslices()
 
         # Process each data sample
