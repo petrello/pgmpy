@@ -534,17 +534,32 @@ class DynamicBayesianNetwork(DAG):
 
         self.cpds.extend(cpds)
 
-    def log_likelihood(self, data):
+    def log_likelihood(self, data, show_progress=False):
         """
-        Computes the log-likelihood of a given dataset.
+        Compute the log-likelihood of the given data under the current
+        Dynamic Bayesian Network model.
 
-        The log-likelihood measure can be used to check how well the specified
-        model describes the data. A higher score means a better fit.
+        The log-likelihood measures how well the model explains the observed data.
+        It is computed as the sum of log-probabilities of all variables at each
+        time slice given their parents (evidence variables). Lower values indicate
+        less probable observations under the current model parameters.
+
+        This method works with discrete Dynamic Bayesian Networks and supports
+        data across multiple time slices. The computation considers:
+        - Variables in the first time slice (t=0) use their marginal probabilities
+        - Variables in subsequent time slices (t>0) use conditional probabilities
+          given their parents from the same and previous time slices
 
         Parameters
         ----------
         data: pd.DataFrame instance
             The dataset against which to score the model.
+
+        Returns
+        -------
+        float
+            The total log-likelihood score for the entire dataset. This is the
+            sum of log-likelihood scores for all individual data points.
 
         Examples
         --------
@@ -574,7 +589,67 @@ class DynamicBayesianNetwork(DAG):
         >>> model.log_likelihood(data)
         -103818.57516969478
         """
-        pass
+
+        # TODO: do i need this?
+        # if not self.cpds:
+        #     raise ValueError(
+        #         "Model has not been fitted. Call fit() method first to learn "
+        #         "the CPDs before computing log-likelihood."
+        #     )
+
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError(f"Data must be a pandas.DataFrame instance. Got: {type(data)}")
+
+        if min(data.columns, key=lambda t: t[1])[1] != 0:
+            raise ValueError("Data column names must start from time slice 0.")
+
+        if set(self._nodes()) != set(data.columns):
+            raise ValueError(
+                f"Missing columns in data. Can't find values for the following variables: "
+                f" {set(self._nodes()) - set(data.columns)}"
+            )
+
+        # Check for missing values
+        if data.isnull().any().any():
+            raise ValueError(
+                "Data contains missing values. Log-likelihood computation "
+                "requires complete observations."
+            )
+
+        self.check_model()
+
+        # Create mapping from node to CPD for efficient lookup
+        node_to_cpd = {cpd.variable: cpd for cpd in self.get_cpds()}
+
+        # Initialize computation variables
+        total_log_likelihood = 0.0
+        n_samples = len(data)
+        epsilon = 1e-10  # Small constant to prevent log(0)
+        nodes = list(self._nodes())
+        time_slices = self._timeslices()
+
+        # Process each data sample
+        for i in tqdm(
+            range(n_samples), desc="Computing log-likelihood", disable=not(show_progress and config.SHOW_PROGRESS)
+        ):
+            sample_log_likelihood = 0.0
+
+            # Process each time slice
+            for t in sorted(time_slices):
+                # Get nodes in current time slice
+                nodes_t = [node for node in nodes if node[1] == t]
+
+                # Compute log-probability for each node in this time slice
+                for node in nodes_t:
+                    node_log_prob = self._compute_node_log_probability(
+                        node, data.iloc[i], node_to_cpd[node], epsilon
+                    )
+                    sample_log_likelihood += node_log_prob
+
+            total_log_likelihood += sample_log_likelihood
+
+        return total_log_likelihood
+
 
     def get_cpds(self, node=None, time_slice=None):
         """
