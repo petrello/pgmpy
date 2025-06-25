@@ -554,6 +554,10 @@ class DynamicBayesianNetwork(DAG):
         ----------
         data: pd.DataFrame instance
             The dataset against which to score the model.
+            Each column should represent a variable in the form of (node_name, time_slice).
+
+        show_progress : bool, default=False
+            Whether to display a progress bar during computation.
 
         Returns
         -------
