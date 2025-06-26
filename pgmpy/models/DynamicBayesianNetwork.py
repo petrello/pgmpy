@@ -673,7 +673,7 @@ class DynamicBayesianNetwork(DAG):
         """
 
         # Get the observed value for this node
-        observed_value = sample_data[node]
+        observed_value = sample_data[(node[0], node[1])]
 
         # Convert observed value to state index according to CPD
         try:
@@ -696,8 +696,8 @@ class DynamicBayesianNetwork(DAG):
 
             # Get evidence values for all parents
             for parent in parents:
-                if parent in sample_data.index:
-                    parent_value = sample_data[parent]
+                if (parent[0], parent[1]) in sample_data.index:
+                    parent_value = sample_data[(parent[0], parent[1])]
 
                     # Convert parent value to state index
                     try:
