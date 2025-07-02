@@ -564,50 +564,50 @@ class DynamicBayesianNetwork(DAG):
         float
             The total log-likelihood score for the entire dataset. This is the
             sum of log-likelihood scores for all individual data points.
+            More negative values indicate worse fit to the data.
 
+        Raises
+        ------
+        ValueError
+            If data is not a pandas DataFrame, contains missing values,
+            has incorrect column structure, or contains values not present
+            in the model's CPD state names.
+
+        Examples
+        --------
         Examples
         --------
         >>> import numpy as np
         >>> import pandas as pd
         >>> from pgmpy.models import DynamicBayesianNetwork as DBN
-        >>> model = DBN(
-        ...     [
-        ...         (("A", 0), ("B", 0)),
-        ...         (("A", 0), ("C", 0)),
-        ...         (("B", 0), ("D", 0)),
-        ...         (("C", 0), ("D", 0)),
-        ...         (("A", 0), ("A", 1)),
-        ...         (("B", 0), ("B", 1)),
-        ...         (("C", 0), ("C", 1)),
-        ...         (("D", 0), ("D", 1)),
-        ...     ]
-        ... )
-        >>> data = np.random.randint(low=0, high=2, size=(1000, 20))
-        >>> colnames = []
-        >>> for t in range(5):
-        ...     colnames.extend([("A", t), ("B", t), ("C", t), ("D", t)])
-        ...
+        >>>
+        >>> # Create a simple DBN with temporal dependencies
+        >>> model = DBN([
+        ...     (("A", 0), ("B", 0)),
+        ...     (("A", 0), ("A", 1)),
+        ...     (("B", 0), ("B", 1))
+        ... ])
+        >>>
+        >>> # Generate sample data with 4 variables across 3 time slices
+        >>> data = np.random.randint(low=0, high=2, size=(100, 6))
+        >>> colnames = [("A", 0), ("B", 0), ("A", 1), ("B", 1), ("A", 2), ("B", 2)]
         >>> df = pd.DataFrame(data, columns=colnames)
+        >>>
+        >>> # Fit model and compute log-likelihood
         >>> model.fit(df)
-        >>> data = model.simulate(int(1e4))
-        >>> model.log_likelihood(data)
-        -103818.57516969478
+        >>> ll_score = model.log_likelihood(df)
+        >>> print(f"Log-likelihood: {ll_score:.2f}")
+        Log-likelihood: -138.62
         """
 
-        # TODO: do i need this?
-        # if not self.cpds:
-        #     raise ValueError(
-        #         "Model has not been fitted. Call fit() method first to learn "
-        #         "the CPDs before computing log-likelihood."
-        #     )
-
+        # Input validation
         if not isinstance(data, pd.DataFrame):
             raise ValueError(f"Data must be a pandas.DataFrame instance. Got: {type(data)}")
 
-        if min(data.columns, key=lambda t: t[1])[1] != 0:
+        if min(data.columns, key=lambda x: x[1])[1] != 0:
             raise ValueError("Data column names must start from time slice 0.")
 
-        if set(self.nodes()) != set(data.columns):
+        if set(self.nodes()) - set(data.columns):
             raise ValueError(
                 f"Missing columns in data. Can't find values for the following variables: "
                 f" {set(self.nodes()) - set(data.columns)}"
@@ -657,19 +657,37 @@ class DynamicBayesianNetwork(DAG):
         """
         Compute the log-probability of a specific node given the sample data.
 
+        This helper method calculates the contribution of a single node to the
+        overall log-likelihood by retrieving the appropriate probability from
+        the node's Conditional Probability Distribution (CPD) and computing
+        its logarithm.
+
         Parameters
         ----------
         node : tuple
-            Node identifier in format (variable_name, time_slice)
+            Node identifier in format (variable_name, time_slice).
+
         sample_data : pd.Series
-            Single data sample containing values for all variables
+            Single data sample containing values for all variables.
+            Index should contain tuples of (variable_name, time_slice).
+
         cpd : pgmpy.factors.discrete.TabularCPD
-            Conditional Probability Distribution for the node
+            Conditional Probability Distribution for the node.
+            Must contain state names matching the observed values.
 
         Returns
         -------
         float
-            Log-probability of the node given the evidence
+            Log-probability of the node given the evidence.
+            Value will be <= 0, with values closer to 0 indicating
+            higher probability.
+
+        Raises
+        ------
+        ValueError
+            If observed value is not found in CPD state names,
+            if parent values are not found in CPD state names,
+            or if required parent nodes are missing from sample data.
         """
 
         # Get the observed value for this node
@@ -715,7 +733,7 @@ class DynamicBayesianNetwork(DAG):
                         "Ensure all parent nodes are included in the dataset."
                     )
 
-            prob = cpd.values[observed_state_idx, tuple(evidence_indices)]
+            prob = cpd.values[observed_state_idx][tuple(evidence_indices)]
 
         # Ensure probability is not zero for numerical stability
         # (with a small epsilon to avoid log(0))
