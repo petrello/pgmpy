@@ -633,7 +633,9 @@ class DynamicBayesianNetwork(DAG):
 
         # Process each data sample
         for i in tqdm(
-            range(n_samples), desc="Computing log-likelihood", disable=not(show_progress and config.SHOW_PROGRESS)
+            range(n_samples),
+            desc="Computing log-likelihood",
+            disable=not(show_progress and config.SHOW_PROGRESS)
         ):
             sample_log_likelihood = 0.0
 
