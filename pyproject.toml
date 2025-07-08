@@ -36,7 +36,8 @@ dependencies = [
   "pyparsing>=3.0",
   "joblib>=1.2",
   "opt_einsum>=3.3",
-  "pyro-ppl>=1.9.1"
+  "pyro-ppl>=1.9.1",
+  "black[jupyter,test]>=25.1.0",
 ]
 
 [project.optional-dependencies]

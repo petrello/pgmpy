@@ -602,7 +602,9 @@ class DynamicBayesianNetwork(DAG):
 
         # Input validation
         if not isinstance(data, pd.DataFrame):
-            raise ValueError(f"Data must be a pandas.DataFrame instance. Got: {type(data)}")
+            raise ValueError(
+                f"Data must be a pandas.DataFrame instance. Got: {type(data)}"
+            )
 
         if min(data.columns, key=lambda x: x[1])[1] != 0:
             raise ValueError("Data column names must start from time slice 0.")
@@ -635,7 +637,7 @@ class DynamicBayesianNetwork(DAG):
         for i in tqdm(
             range(n_samples),
             desc="Computing log-likelihood",
-            disable=not(show_progress and config.SHOW_PROGRESS)
+            disable=not (show_progress and config.SHOW_PROGRESS),
         ):
             sample_log_likelihood = 0.0
 
