@@ -582,7 +582,7 @@ class DynamicBayesianNetwork(DAG):
         >>> from pgmpy.models import DynamicBayesianNetwork as DBN
         >>>
         >>> # Create a simple DBN with temporal dependencies
-        >>> model = DBN([
+        >>> model = DBN(
         ...    [(("A", 0), ("B", 0)), (("A", 0), ("A", 1)), (("B", 0), ("B", 1))]
         ... )
         >>>
