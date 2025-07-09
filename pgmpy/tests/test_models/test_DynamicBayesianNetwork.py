@@ -1663,7 +1663,7 @@ class TestLogLikelihood(unittest.TestCase):
             ("A", 1),
             ("B", 1),
             ("C", 1),
-            ("D", 1)
+            ("D", 1),
         ]
         self.training_df = pd.DataFrame(training_data, columns=columns)
 
