@@ -1639,22 +1639,32 @@ class TestLogLikelihood(unittest.TestCase):
     def setUp(self):
         """Set up a simple but realistic DBN for testing."""
         # Create consistent test structure: A->B, A->C, B->D, C->D with temporal connections
-        self.model = DBN([
-            (("A", 0), ("B", 0)),
-            (("A", 0), ("C", 0)),
-            (("B", 0), ("D", 0)),
-            (("C", 0), ("D", 0)),
-            (("A", 0), ("A", 1)),
-            (("B", 0), ("B", 1)),
-            (("C", 0), ("C", 1)),
-            (("D", 0), ("D", 1)),
-        ])
+        self.model = DBN(
+            [
+                (("A", 0), ("B", 0)),
+                (("A", 0), ("C", 0)),
+                (("B", 0), ("D", 0)),
+                (("C", 0), ("D", 0)),
+                (("A", 0), ("A", 1)),
+                (("B", 0), ("B", 1)),
+                (("C", 0), ("C", 1)),
+                (("D", 0), ("D", 1)),
+            ]
+        )
 
         # Generate training data with consistent patterns
         np.random.seed(42)
         training_data = np.random.choice([0, 1], size=(1000, 8), p=[0.7, 0.3])
-        columns = [("A", 0), ("B", 0), ("C", 0), ("D", 0),
-                   ("A", 1), ("B", 1), ("C", 1), ("D", 1)]
+        columns = [
+            ("A", 0),
+            ("B", 0),
+            ("C", 0),
+            ("D", 0),
+            ("A", 1),
+            ("B", 1),
+            ("C", 1),
+            ("D", 1)
+        ]
         self.training_df = pd.DataFrame(training_data, columns=columns)
 
         # Fit the model once for all tests
@@ -1675,16 +1685,18 @@ class TestLogLikelihood(unittest.TestCase):
 
     def test_consistency(self):
         """Test that log_likelihood gives consistent results for same data."""
-        test_data = pd.DataFrame({
-            ("A", 0): [0, 1, 0],
-            ("B", 0): [0, 1, 1],
-            ("C", 0): [0, 1, 1],
-            ("D", 0): [0, 1, 0],
-            ("A", 1): [1, 0, 1],
-            ("B", 1): [1, 0, 0],
-            ("C", 1): [1, 0, 0],
-            ("D", 1): [0, 1, 1]
-        })
+        test_data = pd.DataFrame(
+            {
+                ("A", 0): [0, 1, 0],
+                ("B", 0): [0, 1, 1],
+                ("C", 0): [0, 1, 1],
+                ("D", 0): [0, 1, 0],
+                ("A", 1): [1, 0, 1],
+                ("B", 1): [1, 0, 0],
+                ("C", 1): [1, 0, 0],
+                ("D", 1): [0, 1, 1],
+            }
+        )
 
         ll1 = self.model.log_likelihood(test_data)
         ll2 = self.model.log_likelihood(test_data)
@@ -1696,16 +1708,18 @@ class TestLogLikelihood(unittest.TestCase):
     def test_log_likelihood(self):
         """Test log_likelihood with realistic scenario: good vs anomalous data."""
         # Create a realistic DBN structure
-        model = DBN([
-            (("A", 0), ("B", 0)),
-            (("A", 0), ("C", 0)),
-            (("B", 0), ("D", 0)),
-            (("C", 0), ("D", 0)),
-            (("A", 0), ("A", 1)),
-            (("B", 0), ("B", 1)),
-            (("C", 0), ("C", 1)),
-            (("D", 0), ("D", 1)),
-        ])
+        model = DBN(
+            [
+                (("A", 0), ("B", 0)),
+                (("A", 0), ("C", 0)),
+                (("B", 0), ("D", 0)),
+                (("C", 0), ("D", 0)),
+                (("A", 0), ("A", 1)),
+                (("B", 0), ("B", 1)),
+                (("C", 0), ("C", 1)),
+                (("D", 0), ("D", 1)),
+            ]
+        )
 
         # Generate training data with consistent patterns (biased toward 0)
         np.random.seed(42)
@@ -1736,7 +1750,7 @@ class TestLogLikelihood(unittest.TestCase):
         self.assertGreater(
             ll_good,
             ll_anomalous,
-            "Expected higher log-likelihood for normal data compared to anomalous data"
+            "Expected higher log-likelihood for normal data compared to anomalous data",
         )
         self.assertLess(ll_good, 0, "Log-likelihood should be negative")
         self.assertLess(ll_anomalous, 0, "Log-likelihood should be negative")
