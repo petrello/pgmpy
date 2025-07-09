@@ -583,10 +583,8 @@ class DynamicBayesianNetwork(DAG):
         >>>
         >>> # Create a simple DBN with temporal dependencies
         >>> model = DBN([
-        ...     (("A", 0), ("B", 0)),
-        ...     (("A", 0), ("A", 1)),
-        ...     (("B", 0), ("B", 1))
-        ... ])
+        ...    [(("A", 0), ("B", 0)), (("A", 0), ("A", 1)), (("B", 0), ("B", 1))]
+        ... )
         >>>
         >>> # Generate sample data with 4 variables across 3 time slices
         >>> data = np.random.randint(low=0, high=2, size=(100, 6))
