@@ -1,4 +1,5 @@
 import typing
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import chain, combinations
@@ -604,6 +605,20 @@ class DynamicBayesianNetwork(DAG):
                 f"Data must be a pandas.DataFrame instance. Got: {type(data)}"
             )
 
+        if data.dropna().empty:
+            raise ValueError("DataFrame is empty.")
+
+        for col in data.columns:
+            if not isinstance(col, tuple) or len(col) != 2:
+                raise ValueError(
+                    "Data column names must be tuples of the form (node_name, time_slice). "
+                    f"Got column type {type(col)} of length {len(col) if isinstance(col, tuple) else 'N/A'}"
+                )
+            if not isinstance(col[1], int) or col[1] < 0:
+                raise ValueError(
+                    "Time slice in data column names must be a non-negative integer."
+                )
+
         if min(data.columns, key=lambda x: x[1])[1] != 0:
             raise ValueError("Data column names must start from time slice 0.")
 
@@ -611,6 +626,12 @@ class DynamicBayesianNetwork(DAG):
             raise ValueError(
                 f"Missing columns in data. Can't find values for the following variables: "
                 f" {set(self.nodes()) - set(data.columns)}"
+            )
+
+        if set(data.columns) - set(self.nodes()):
+            warnings.warn(
+                f"Data contains columns not present in the model: {set(data.columns) - set(self.nodes())}",
+                UserWarning,
             )
 
         # Check for missing values
@@ -624,6 +645,9 @@ class DynamicBayesianNetwork(DAG):
 
         # Create mapping from node to CPD for efficient lookup
         node_to_cpd = {cpd.variable: cpd for cpd in self.get_cpds()}
+
+        if not node_to_cpd:
+            raise ValueError("No CPDs found in the model.")
 
         # Initialize computation variables
         total_log_likelihood = 0.0
@@ -646,9 +670,12 @@ class DynamicBayesianNetwork(DAG):
 
                 # Compute log-probability for each node in this time slice
                 for node in nodes_t:
-                    node_log_prob = self._log_likelihood_node(
-                        node, data.iloc[i], node_to_cpd[node]
-                    )
+                    try:
+                        cpd = node_to_cpd[node]
+                    except KeyError:
+                        raise KeyError(f"CPD for node {node} not found in the model.")
+
+                    node_log_prob = self._log_likelihood_node(node, data.iloc[i], cpd)
                     sample_log_likelihood += node_log_prob
 
             total_log_likelihood += sample_log_likelihood
